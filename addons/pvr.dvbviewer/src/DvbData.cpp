@@ -212,9 +212,12 @@ bool Dvb::LoadChannels()
 
   std::vector<DvbChannel> channelsdat;
   std::vector<DvbChannelGroup> groupsdat;
+  std::vector<CStdString> logo_groupsdat, logo_namesdat;
   DvbChannel datChannel;
   DvbChannelGroup datGroup;
+  CStdString datLogo;
   char channel_group[26] = "";
+  bool get_logo = false;
 
   for (int i=0; i<num_channels; i++)
   {
@@ -227,12 +230,21 @@ bool Dvb::LoadChannels()
         continue;
     }
     else
+    {
       channel_pos++;
+      get_logo = true;
+    }
 
     char channel_group_dat[26] = "";
     strncpy(channel_group_dat, channel->Category, channel->Category_len);
     if (strcmp(channel_group, channel_group_dat))
     {
+      char channel_root[26] = "";
+      strncpy(channel_root, channel->Root, channel->Root_len);
+      datLogo = channel_root;
+      datLogo.append(channel_group_dat);
+      logo_groupsdat.push_back(datLogo);
+
       memset(channel_group, 0, sizeof(channel_group));
       strncpy(channel_group, channel_group_dat, channel->Category_len);
       char* strGroupNameUtf8 = XBMC->UnknownToUTF8(channel_group);
@@ -273,6 +285,11 @@ bool Dvb::LoadChannels()
     }
     char* strChannelNameUtf8 = XBMC->UnknownToUTF8(strChannelName.c_str());
     datChannel.strChannelName = strChannelNameUtf8;
+    if (get_logo)
+    {
+      logo_namesdat.push_back(strChannelName);
+      get_logo = false;
+    }
     XBMC->FreeString(strChannelNameUtf8);
   
     CStdString strTmp;
@@ -284,6 +301,46 @@ bool Dvb::LoadChannels()
 
     channelsdat.push_back(datChannel);
   }
+
+#ifdef WIN32
+  if (XBMC->FileExists("C:\\DVBLogos", false))
+  {
+    XBMC->QueueNotification(QUEUE_INFO, "Saving logos to C:\\DVBLogos");
+    for (unsigned int i = 0; i<logo_groupsdat.size(); i++)
+    {
+      CStdString url;
+      url.Format("%stvguide.html?aktion=tvguide&Datum=01.01.2012&chan_id=%s", m_strURL.c_str(), URLEncodeInline(logo_groupsdat[i].c_str()));
+      CStdString strLogo;
+      strLogo = GetHttpXML(url);
+      size_t found = 0;
+      unsigned int iPos = 0, iLogoStartPos, iLogoEndPos, iChannelStartPos, iChannelEndPos, iChannel;
+      while (found != CStdString::npos)
+      {
+        iLogoStartPos = strLogo.find("Logos/", iPos);
+        iLogoEndPos = strLogo.find("\"", iLogoStartPos);
+        found = iLogoStartPos;
+        if (found > strLogo.size())
+          break;
+        iPos = iLogoEndPos;
+        iChannelStartPos = strLogo.rfind("chid=", iLogoStartPos) + 5;
+        iChannelEndPos = strLogo.rfind("'", iChannelStartPos);
+        iChannel = atoi(strLogo.substr(iChannelStartPos, iChannelEndPos - iChannelStartPos).c_str());
+        CStdString urlLogo, strPng, strLogoName, strPngName;
+        strLogoName = strLogo.substr(iLogoStartPos, iLogoEndPos - iLogoStartPos);
+        urlLogo.Format("%s%s", m_strURL.c_str(),strLogoName.c_str());
+        strPng = GetHttpXML(urlLogo);
+        strPngName.Format("c:\\DVBLogos\\%s.png", logo_namesdat[iChannel].c_str());
+        FILE *newIconFile = fopen(strPngName.c_str(), "wb");
+        if (newIconFile != NULL) 
+        {
+          fwrite(strPng.data(), sizeof(char), strPng.size(), newIconFile);
+          fclose(newIconFile);
+        }
+      }
+    }
+    XBMC->QueueNotification(QUEUE_INFO, "Finished!");
+  }
+#endif
 
   if (g_bUseFavourites)
   {
