@@ -1,3 +1,7 @@
+1.7.0
+
+[added] Timeshift support.
+
 1.6.5
 
 [updated] Language files from Transifex
