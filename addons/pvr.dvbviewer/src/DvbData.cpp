@@ -225,20 +225,17 @@ bool Dvb::LoadChannels()
     dvbChannel.iChannelNumber = channels.size() + 1;
 
     CStdString strChannelName(channel->ChannelName, channel->ChannelName_len);
-    /* large channels names are distributed at the end of the root + category fields */
+    /* large channels names are distributed at the end of the root + category fields
+     * format of root/category: field_data|len of channel substring|channel substring
+     */
     if (channel->ChannelName_len == 25)
     {
       if (channel->Root_len < 25)
-      {
-        CStdString tmp(channel->Root + channel->Root_len, 25 - channel->Root_len);
-        strChannelName.append(tmp);
-      }
+        strChannelName.append(channel->Root + channel->Root_len + 1, channel->Root[channel->Root_len]);
       if (channel->Category_len < 25)
-      {
-        CStdString tmp(channel->Category + channel->Category_len, 25 - channel->Category_len);
-        strChannelName.append(tmp);
-      }
+        strChannelName.append(channel->Category + channel->Category_len + 1, channel->Category[channel->Category_len]);
     }
+
     char *strChannelNameUtf8 = XBMC->UnknownToUTF8(strChannelName.c_str());
     dvbChannel.strChannelName = strChannelNameUtf8;
     XBMC->FreeString(strChannelNameUtf8);
