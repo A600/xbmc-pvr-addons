@@ -1,6 +1,7 @@
 1.7.0
 
-[added] Timeshift support.
+[added] basic timeshift support.
+[updated] some code cleanup
 
 1.6.5
 
