@@ -1,3 +1,10 @@
+1.7.6
+
+[added] Basic timeshift support.
+[added] Use channel names from favourites. This allows easy channelname changes.
+[fixed] Replace "/"-character by " " in channel logo url
+[updated] A lot of code cleanup
+
 1.6.5
 
 [updated] Language files from Transifex
